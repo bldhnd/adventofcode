@@ -44,7 +44,7 @@ def problem_2() -> None:
             elif color == "red" and number > red:
                 red = number
             
-            if ch == "," or ch == ";":
+            if ch in [",", ";"]:
                 pos += 1
                 ch = line[pos]
         
