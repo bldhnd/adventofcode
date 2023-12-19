@@ -61,21 +61,15 @@ def problem_2() -> None:
         won_games[game_number] += 1
 
         total_copies = won_games[game_number]
+        
+        for x in range(1, games_won + 1):
+            key = game_number + x
 
-        for _ in range(total_copies):
-            for x in range(1, games_won + 1):
-                key = game_number + x
-
-                if key not in won_games:
-                    won_games[key] = 0
-                
-                won_games[key] += 1
+            if key not in won_games:
+                won_games[key] = 0
+            
+            won_games[key] += total_copies
     
-        # for key in won_games:
-        #     print(f"Game {key} won {won_games[key]}", end=", ")
-        # else:
-        #     print()
-
     total = sum([won_games[key] for key in won_games])
 
     print(f"Problem 2 total is {total}")
