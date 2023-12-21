@@ -147,30 +147,3 @@ class PuzzleParser:
         self.next()
 
         return (dest, src, range)
-    
-
-# if seed_start < src and seed_end >= src and seed_end <= src_end:
-#                     # starting seed is less than map entry start but range extends into range of source map entry
-#                     new_rng = rng - (rng - seed[1])
-#                     org_seed_new_rng = src - seed_start
-
-#                     updated_seeds.append((dst, new_rng))
-#                     updated_seeds.append((seed_start, org_seed_new_rng))
-#                 elif seed_start >= src and seed_start <= src_end and seed_end > src_end:
-#                     # starting seed range matches but end goes past map entry source range
-#                     dst_idx = abs(seed_start - src)
-#                     dst_rng = rng - dst_idx
-#                     org_seed_new_rng = seed_end - src_end
-
-#                     updated_seeds.append((dst + dst_idx, dst_rng))
-#                     updated_seeds.append((src_end, org_seed_new_rng))
-#                 elif seed_start < src and seed_end > src_end:
-#                     updated_seeds.append((seed_start, src - seed_start))
-#                     updated_seeds.append((src_end, seed_end - src_end))
-#                     updated_seeds.append((dst, rng))
-#                 elif seed_start >= src and seed_end <= src_end:
-#                     # every number matches
-#                     dst_idx = seed_start - src
-#                     updated_seeds.append((dst + dst_idx, seed[1]))
-#                 else:
-#                     updated_seeds.append(seed)
