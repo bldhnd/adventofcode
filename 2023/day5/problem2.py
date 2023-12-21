@@ -127,7 +127,7 @@ class PuzzleParser:
             number += self.last()
             self.next()
         
-        return int(number) if number != '' else ''
+        return int(number) if number != '' else None
 
     def read_map_name(self) -> str:
         map_name = ''
