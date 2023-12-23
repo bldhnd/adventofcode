@@ -24,18 +24,24 @@ def problem_2() -> None:
     time = parser(lines[0])
     distance = parser(lines[1])
 
-    start = 0
+    start = end = half_way = floor(time / 2)
+    
+    while True:
+        candidate = start * (time - start)
+        
+        if candidate < distance:
+            break
+        
+        end = start
+        start = floor(start / 2)
 
-    half_way = floor(time / 2)
-
-    for press_len in range(1, half_way):
+    for press_len in range(start, end):
         candidate = press_len * (time - press_len)
 
         if candidate > distance:
             start = press_len
-            break        
+            break
 
     total = (half_way - start) * 2 + 1
     
-    # answer 28545089
     print(f"Problem 2 total ways to win is {total}")
