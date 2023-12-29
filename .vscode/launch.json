@@ -8,7 +8,7 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "C:\\Users\\tuckemax\\source\\repos\\github\\adventofcode\\2023\\day7\\main.py",
+            "program": "C:\\Users\\tuckemax\\source\\repos\\github\\adventofcode\\2023\\day8\\main.py",
             "console": "integratedTerminal",
             "justMyCode": true
         }
