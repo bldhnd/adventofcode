@@ -6,7 +6,11 @@ import "core:unicode"
 
 
 main :: proc() {
-	answer := 0
+  day_one(SAMPLE_INPUT)
+}
+
+day_one :: proc(input: string) {
+  answer := 0
 	dial := 50
 	direction_right := true
 
@@ -15,7 +19,24 @@ main :: proc() {
 	direction, turn_count, ok := parse_movement(&parser_state)
 
 	for ok {
-		fmt.println("direction", direction, "turn count", turn_count)
+    switch direction {
+    case 'L':
+      dial -= turn_count
+
+      if dial < 0 {
+        dial = 100 - dial
+      }
+    case 'R':
+      dial += turn_count
+
+      if dial > 100 {
+        dial = dial - 100
+      }
+    }
+
+    fmt.printfln("move %v %v..dial is at %v", direction, turn_count, dial)
+
+    if dial == 0 do answer += 1
 
 		direction, turn_count, ok = parse_movement(&parser_state)
 	}
@@ -23,7 +44,7 @@ main :: proc() {
 	fmt.printfln("puzzle 1 answer: %v", answer)
 }
 
-parse_movement :: proc(parser: ^Parser_State) -> (rune, int, bool) {
+parse_movement :: proc(parser: ^Puzzle_State) -> (rune, int, bool) {
 	if len(parser.text) == parser.index {
 		return 0, -1, false
 	}
@@ -51,7 +72,7 @@ parse_movement :: proc(parser: ^Parser_State) -> (rune, int, bool) {
 	return direction, count, true
 }
 
-Parser_State :: struct {
+Puzzle_State :: struct {
 	text:  string,
 	index: int,
 }
