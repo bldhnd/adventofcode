@@ -6,37 +6,50 @@ import "core:unicode"
 
 
 main :: proc() {
-  day_one(SAMPLE_INPUT)
+	day_one(PUZZLE_INPUT)
 }
 
 day_one :: proc(input: string) {
-  answer := 0
+	answer := 0
 	dial := 50
 	direction_right := true
 
-	parser_state := Puzzle_State {text = input, index = 0}
+	parser_state := Puzzle_State {
+		text  = input,
+		index = 0,
+	}
 
 	direction, turn_count, ok := parse_movement(&parser_state)
 
 	for ok {
-    switch direction {
-    case 'L':
-      dial -= turn_count
+		old_spot := dial
 
-      if dial < 0 {
-        dial = 100 - dial
-      }
-    case 'R':
-      dial += turn_count
+		switch direction {
+		case 'L':
+			dial -= turn_count % 100
 
-      if dial > 100 {
-        dial = dial - 100
-      }
-    }
+			if dial < 0 {
+				dial += 100
+			}
+		case 'R':
+			dial += turn_count % 100
 
-    fmt.printfln("move %v %v..dial is at %v", direction, turn_count, dial)
+			if dial == 100 {
+				dial = 0
+			} else if dial > 100 {
+				dial = dial % 100
+			}
+		}
 
-    if dial == 0 do answer += 1
+		fmt.printfln(
+			"move %v %v..dial was at %v now is at %v",
+			direction,
+			turn_count,
+			old_spot,
+			dial,
+		)
+
+		if dial == 0 do answer += 1
 
 		direction, turn_count, ok = parse_movement(&parser_state)
 	}
@@ -62,7 +75,9 @@ parse_movement :: proc(parser: ^Puzzle_State) -> (rune, int, bool) {
 	count, ok := strconv.parse_int(parser.text[start_index:parser.index])
 
 	if !ok {
-		panic(fmt.aprintf("could not parser turn count! %v\n", parser.text[start_index:parser.index]))
+		panic(
+			fmt.aprintf("could not parse turn count! %v\n", parser.text[start_index:parser.index]),
+		)
 	}
 
 	if parser.index < len(parser.text) {
