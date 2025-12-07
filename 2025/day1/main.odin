@@ -12,7 +12,6 @@ main :: proc() {
 day_one :: proc(input: string) {
 	answer := 0
 	dial := 50
-	direction_right := true
 
 	parser_state := Puzzle_State {
 		text  = input,
