@@ -7,7 +7,7 @@ import "core:strconv"
 
 main :: proc() {
   //day_one(PUZZLE_INPUT)
-  day_two(SAMPLE_INPUT)
+  day_two(PUZZLE_INPUT)
 }
 
 day_one :: proc(input: string) {
@@ -43,28 +43,42 @@ day_one :: proc(input: string) {
 }
 
 day_two :: proc(input: string) {
+  // Attempt 1: 46769308530 is too high
+  // Answer: 46769308485
   answer := 0
   product_ranges := parse_product_ranges(input)
 
   for product_range in product_ranges {
     for current in product_range.start ..= product_range.end {
+       (current > 10) or_continue
+
        s := fmt.tprintf("%v", current)
 
-       middle := len(s) / 2
+       middle := len(s) / 2 + len(s) % 2
 
        for middle != 0 {
          candidate := s[:middle]
          da_rest := s[middle:]
 
-         fmt.printfln("%v: testing '%v' against '%v'", s, candidate, da_rest)
+         found := len(da_rest) % len(candidate) == 0
+         for i := middle; i < len(s) && found; i += len(candidate) {
+           next := s[i: i + len(candidate)]
 
-         if candidate == da_rest {
-           fmt.printfln("found %v", candidate)
+           if candidate != next {
+             found = false
+           }
+         }
+
+         if found {
            answer += current
            break
          }
 
          middle = len(candidate) / 2
+
+         if len(candidate) > 1 {
+           middle += len(candidate) % 2
+         }
        }
     }
 
