@@ -63,10 +63,7 @@ day_two :: proc(input: string) {
          found := len(da_rest) % len(candidate) == 0
          for i := middle; i < len(s) && found; i += len(candidate) {
            next := s[i: i + len(candidate)]
-
-           if candidate != next {
-             found = false
-           }
+           found = candidate == next
          }
 
          if found {
