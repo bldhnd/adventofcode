@@ -6,7 +6,8 @@ import "core:fmt"
 ASCII_ZERO :: 48
 
 main :: proc() {
-  day_one(PUZZLE_INPUT)
+  // day_one(PUZZLE_INPUT)
+  day_two(SAMPLE_INPUT)
 }
 
 day_one :: proc(input: string) {
@@ -15,8 +16,6 @@ day_one :: proc(input: string) {
   current_bank, ok := read_bank(input, 0)
 
   for ok {
-    // fmt.println("bank", current_bank.row)
-
     for i := 0; i < len(current_bank.bank) - 1; i += 1 {
       ch := current_bank.bank[i]
 
@@ -38,8 +37,6 @@ day_one :: proc(input: string) {
       }
     }
 
-    // fmt.printfln("row %v total %v", current_bank.row, current_bank.tens + current_bank.ones)
-
     answer += current_bank.tens + current_bank.ones
 
     current_bank, ok = read_bank(input, current_bank.row + 1)
@@ -49,28 +46,57 @@ day_one :: proc(input: string) {
 }
 
 day_two :: proc(input: string) {
+  answer := 0
+  current_bank, ok := read_bank_v2(input, 0)
 
+  for ok {
+    // TODO: impl
+
+    current_bank, ok = read_bank_v2(input, current_bank.row + 1)
+  }
+
+  fmt.println("Day three part two answer", answer)
 }
 
 read_bank :: proc(input: string, row: int) -> (Battery_Bank, bool) {
-    length := 0
+  bank, ok := parse_bank(input, row)
 
-    for i := 0;; i += 1 {
-      if input[i] == '\n' {
-        length = i + 1
-        break
-      }
+  if !ok {
+    return {}, false
+  }
+
+  return {bank = bank, row = row}, true
+}
+
+read_bank_v2 :: proc(input: string, row: int) -> (Battery_Bank_V2, bool) {
+  bank, ok := parse_bank(input, row)
+
+  if !ok {
+    return {}, false
+  }
+
+  return {bank = bank, row = row}, true
+}
+
+parse_bank :: proc(input: string, row: int) -> (string, bool) {
+  length := 0
+
+  for i := 0;; i += 1 {
+    if input[i] == '\n' {
+      length = i + 1
+      break
     }
+  }
 
-    start := row * length
+  start := row * length
 
-    if start >= len(input) {
-      return {}, false
-    }
+  if start >= len(input) {
+    return "", false
+  }
 
-    bank := input[start:start + length - 1]
+  bank := input[start:start + length - 1]
 
-    return {bank = bank, row = row}, true
+  return bank, true
 }
 
 Battery_Bank :: struct {
@@ -80,4 +106,12 @@ Battery_Bank :: struct {
   tens_index: int,
   ones:  int,
   index: int,
+}
+
+// 000,000,000,000
+Battery_Bank_V2 :: struct {
+  bank:      string,
+  row:       int,
+  nums:      [12]int,
+  num_index: int,
 }
