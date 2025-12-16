@@ -1,12 +1,13 @@
 package aoc
 
 import "core:fmt"
+import "core:math"
 
 
 ASCII_ZERO :: 48
 
 main :: proc() {
-  // day_one(PUZZLE_INPUT)
+  //day_one(PUZZLE_INPUT)
   day_two(SAMPLE_INPUT)
 }
 
@@ -16,28 +17,29 @@ day_one :: proc(input: string) {
   current_bank, ok := read_bank(input, 0)
 
   for ok {
+    tens_index := 0
     for i := 0; i < len(current_bank.bank) - 1; i += 1 {
       ch := current_bank.bank[i]
 
       num := int((ch - ASCII_ZERO) * 10)
 
-      if num > current_bank.tens {
-        current_bank.tens = num
-        current_bank.tens_index = i
+      if num > current_bank.nums[0] {
+        current_bank.nums[0] = num
+        tens_index = i
       }
     }
 
-    for i := current_bank.tens_index + 1; i < len(current_bank.bank); i += 1 {
+    for i := tens_index + 1; i < len(current_bank.bank); i += 1 {
       ch := current_bank.bank[i]
 
       num := int(ch - ASCII_ZERO)
 
-      if num > current_bank.ones {
-        current_bank.ones = num
+      if num > current_bank.nums[1] {
+        current_bank.nums[1] = num
       }
     }
 
-    answer += current_bank.tens + current_bank.ones
+    answer += current_bank.nums[0] + current_bank.nums[1]
 
     current_bank, ok = read_bank(input, current_bank.row + 1)
   }
@@ -46,29 +48,57 @@ day_one :: proc(input: string) {
 }
 
 day_two :: proc(input: string) {
+  // Attempt 1: 97873208283880 is too low
   answer := 0
-  current_bank, ok := read_bank_v2(input, 0)
+  current_bank, ok := read_bank(input, 0)
 
   for ok {
-    // TODO: impl
+    pop_count := 0
 
-    current_bank, ok = read_bank_v2(input, current_bank.row + 1)
+    for i := 0; i < len(current_bank.bank); i += 1 {
+      num := int(current_bank.bank[i] - ASCII_ZERO)
+
+      stack_index := current_bank.num_index
+
+      if stack_index == 0 {
+        current_bank.nums[stack_index] = num
+        current_bank.num_index += 1
+      } else if stack_index < 12 && current_bank.nums[stack_index - 1] > num {
+        current_bank.nums[stack_index] = num
+        current_bank.num_index += 1
+      } else if pop_count < len(current_bank.bank) - 12 && current_bank.nums[stack_index - 1] < num {
+        for si := stack_index - 1;
+            si >= 0 && si < len(current_bank.bank) - 12 && current_bank.nums[si] < num;
+            si -= 1 {
+          current_bank.nums[si] = num
+          pop_count += 1
+        }
+      } else if stack_index < len(current_bank.nums) {
+        current_bank.nums[stack_index] = num
+        current_bank.num_index += 1
+      }
+    }
+
+    num := 0
+    exponent := 0.0
+    #reverse for n in current_bank.nums {
+      num += n * int(math.pow10(exponent))
+      exponent += 1
+    }
+
+    //ok = false
+
+    fmt.printfln("row %v is %v.", current_bank.row, num)
+
+    answer += num
+
+    current_bank, ok = read_bank(input, current_bank.row + 1)
   }
 
   fmt.println("Day three part two answer", answer)
 }
 
 read_bank :: proc(input: string, row: int) -> (Battery_Bank, bool) {
-  bank, ok := parse_bank(input, row)
-
-  if !ok {
-    return {}, false
-  }
-
-  return {bank = bank, row = row}, true
-}
-
-read_bank_v2 :: proc(input: string, row: int) -> (Battery_Bank_V2, bool) {
   bank, ok := parse_bank(input, row)
 
   if !ok {
@@ -99,17 +129,8 @@ parse_bank :: proc(input: string, row: int) -> (string, bool) {
   return bank, true
 }
 
-Battery_Bank :: struct {
-  bank:  string,
-  row:   int,
-  tens:  int,
-  tens_index: int,
-  ones:  int,
-  index: int,
-}
-
 // 000,000,000,000
-Battery_Bank_V2 :: struct {
+Battery_Bank :: struct {
   bank:      string,
   row:       int,
   nums:      [12]int,
