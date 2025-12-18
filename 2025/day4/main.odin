@@ -47,14 +47,15 @@ part_one :: proc(input: string) {
 }
 
 part_two :: proc(input: string) {
-  // Answer: 8972 .. first impl takes ~30 secs
-  // Answer: 8972 .. second impl takes ~0.3 secs
+  // Answer: 8972 .. first impl takes ~30 secs.
+  // Answer: 8972 .. second impl takes ~0.3 secs.
+  // Answer: 8972 .. third impl i removed the dynamic array of indexes which reduced code but had no real impact on program run time.
   answer := 0
   puzzle := make_puzzle(input)
   try_remove := true
 
   for try_remove {
-    removed := make([dynamic]int)
+    try_remove = false
 
     for vec_to_index(&puzzle, puzzle.pos) < len(puzzle.rolls_of_paper) {
       found := 0
@@ -83,20 +84,16 @@ part_two :: proc(input: string) {
 
       if found < 4 {
         answer += 1
-        append(&removed, vec_to_index(&puzzle, puzzle.pos))
+        try_remove = true
+        mark_removed_v2(&puzzle, puzzle.pos)
       }
 
       move_forward(&puzzle)
     }
 
-    try_remove = len(removed) > 0
-
     if try_remove {
-      mark_removed(&puzzle, removed[:])
       puzzle.pos = {0, 0}
     }
-
-    delete(removed)
   }
 
   fmt.println("day 4 part two answer:", answer)
@@ -151,6 +148,11 @@ mark_removed :: proc(puzzle: ^Puzzle_Data, removed: []int) {
   for i in removed {
     puzzle.removed[i] = true
   }
+}
+
+mark_removed_v2 :: proc(puzzle: ^Puzzle_Data, pos: Vec2i) {
+  index := vec_to_index(puzzle, pos)
+  puzzle.removed[index] = true
 }
 
 index_of_newline :: proc(input: string) -> int {
