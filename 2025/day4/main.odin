@@ -5,7 +5,7 @@ import "core:fmt"
 
 main :: proc() {
 	//part_one(PUZZLE_INPUT)
-  part_two(SAMPLE_INPUT)
+  part_two(PUZZLE_INPUT)
 }
 
 part_one :: proc(input: string) {
@@ -40,9 +40,6 @@ part_one :: proc(input: string) {
 
     answer += 1 if found < 4 else 0
 
-    //index := vec_to_index(&puzzle, puzzle.pos)
-    //fmt.printfln("%v = %v %v", index, rune(puzzle.rolls_of_paper[index]), found < 4)
-
     move_forward(&puzzle)
   }
 
@@ -50,12 +47,66 @@ part_one :: proc(input: string) {
 }
 
 part_two :: proc(input: string) {
+  // Answer: 8972 .. first impl takes ~30 secs
+  // Answer: 8972 .. second impl takes ~0.3 secs
+  answer := 0
+  puzzle := make_puzzle(input)
+  try_remove := true
+
+  for try_remove {
+    removed := make([dynamic]int)
+
+    for vec_to_index(&puzzle, puzzle.pos) < len(puzzle.rolls_of_paper) {
+      found := 0
+
+      if _, ok := look(&puzzle, puzzle.pos); !ok {
+        move_forward(&puzzle)
+        continue
+      }
+
+      // upper left
+      if _, ok := look(&puzzle, puzzle.pos + {-1, -1}); ok do found += 1
+      // up
+      if _, ok := look(&puzzle, puzzle.pos + {0, -1}); ok do found += 1
+      // upper right
+      if _, ok := look(&puzzle, puzzle.pos + {1, -1}); ok do found += 1
+      // right
+      if _, ok := look(&puzzle, puzzle.pos + {1, 0}); ok do found += 1
+      // down right
+      if _, ok := look(&puzzle, puzzle.pos + {1, 1}); ok do found += 1
+      // down
+      if _, ok := look(&puzzle, puzzle.pos + {0, 1}); ok do found += 1
+      // down left
+      if _, ok := look(&puzzle, puzzle.pos + {-1, 1}); ok do found += 1
+      // left
+      if _, ok := look(&puzzle, puzzle.pos + {-1, 0}); ok do found += 1
+
+      if found < 4 {
+        answer += 1
+        append(&removed, vec_to_index(&puzzle, puzzle.pos))
+      }
+
+      move_forward(&puzzle)
+    }
+
+    try_remove = len(removed) > 0
+
+    if try_remove {
+      mark_removed(&puzzle, removed[:])
+      puzzle.pos = {0, 0}
+    }
+
+    delete(removed)
+  }
+
+  fmt.println("day 4 part two answer:", answer)
 
 }
 
 make_puzzle :: proc(data: string) -> Puzzle_Data {
   return {
     rolls_of_paper = data,
+    removed        = make([]bool, len(data)),
     pos            = {0, 0},
     row_length     = index_of_newline(data),
   }
@@ -69,6 +120,10 @@ look :: proc(puzzle: ^Puzzle_Data, pos: Vec2i) -> (rune, bool) #optional_ok {
   }
 
   if index >= len(puzzle.rolls_of_paper) {
+    return 0, false
+  }
+
+  if puzzle.removed[index] {
     return 0, false
   }
 
@@ -92,6 +147,12 @@ move_forward :: proc(puzzle: ^Puzzle_Data) {
   }
 }
 
+mark_removed :: proc(puzzle: ^Puzzle_Data, removed: []int) {
+  for i in removed {
+    puzzle.removed[i] = true
+  }
+}
+
 index_of_newline :: proc(input: string) -> int {
   for i := 0; i < len(input); i += 1 {
     (input[i] == '\n') or_continue
@@ -104,6 +165,7 @@ index_of_newline :: proc(input: string) -> int {
 
 Puzzle_Data :: struct {
   rolls_of_paper: string,
+  removed:        []bool,
   pos:            Vec2i,
   row_length:     int,
 }
