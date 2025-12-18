@@ -4,7 +4,7 @@ import "core:fmt"
 
 
 main :: proc() {
-	//part_one(PUZZLE_INPUT)
+	part_one(PUZZLE_INPUT)
   part_two(PUZZLE_INPUT)
 }
 
@@ -97,7 +97,6 @@ part_two :: proc(input: string) {
   }
 
   fmt.println("day 4 part two answer:", answer)
-
 }
 
 make_puzzle :: proc(data: string) -> Puzzle_Data {
