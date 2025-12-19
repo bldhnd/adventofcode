@@ -6,11 +6,11 @@ import "core:strconv"
 
 
 main :: proc() {
-  //day_one(PUZZLE_INPUT)
-  day_two(PUZZLE_INPUT)
+  part_one(PUZZLE_INPUT)
+  //part_two(PUZZLE_INPUT)
 }
 
-day_one :: proc(input: string) {
+part_one :: proc(input: string) {
   // Attempt 1: 865 is too low..attemped to just take up the the current sub string index and search until end of string for that pattern
   // Attempt 2: 1212627 is too low..change here was to use strings.contains to find current candidate string. tested afterwards on sample and got wrong answer
   // Attempt 3: 31000881061 is the answer. I'm retarded and didn't read close enough. I was counting the errors not summing the product ids. lol
@@ -42,7 +42,7 @@ day_one :: proc(input: string) {
   fmt.println("Day one part one answer:", answer)
 }
 
-day_two :: proc(input: string) {
+part_two :: proc(input: string) {
   // Attempt 1: 46769308530 is too high
   // Answer: 46769308485
   answer := 0

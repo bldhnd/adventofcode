@@ -34,7 +34,49 @@ part_two :: proc(input: string) {
   answer := 0
   puzzle := make_puzzle(input)
 
-  // TODO: solve it!
+  final_id_ranges: [dynamic]Ingredient_ID_Range
+  merged_indexes := make([dynamic]bool, len(puzzle.id_ranges))
+
+  for index in 0 ..< len(puzzle.id_ranges) - 1 {
+    (merged_indexes[index] == false) or_continue
+
+    id_range := puzzle.id_ranges[index]
+
+    for next_index in index + 1 ..< len(puzzle.id_ranges) {
+      (merged_indexes[next_index] == false) or_continue
+
+      next_id_range := puzzle.id_ranges[next_index]
+
+      if id_range.start >= next_id_range.start && id_range.start <= next_id_range.end {
+        merged_indexes[index] = true
+        merged_indexes[next_index] = true
+      } else if id_range.end >= next_id_range.start && id_range.end <= next_id_range.end {
+        merged_indexes[index] = true
+        merged_indexes[next_index] = true
+      } else {
+        continue
+      }
+
+      start := min(id_range.start, next_id_range.start)
+      end := max(id_range.end, next_id_range.end)
+
+      append(&final_id_ranges, Ingredient_ID_Range {
+        start = start,
+        end = end,
+      })
+    }
+
+    if merged_indexes[index] == false {
+      append(&final_id_ranges, id_range)
+    }
+  }
+
+  fmt.println(final_id_ranges)
+  fmt.printfln("merged %v", merged_indexes)
+
+  for id_range in final_id_ranges {
+    answer += id_range.end - id_range.start + 1
+  }
 
   fmt.printfln("Day 5 part two answer: %v", answer)
 }
