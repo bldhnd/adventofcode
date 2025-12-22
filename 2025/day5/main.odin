@@ -1,20 +1,22 @@
 package aoc
 
 import "core:fmt"
+import "core:sort"
 import "core:strconv"
 
 
 main :: proc() {
-  //part_one(PUZZLE_INPUT)
-  part_two(SAMPLE_INPUT)
+  puzzle := make_puzzle(SAMPLE_INPUT)
+
+  //part_one(&puzzle)
+  //part_two(&puzzle)
 }
 
-part_one :: proc(input: string) {
+part_one :: proc(puzzle: ^Puzzle_Data) {
   // Answer: 681 .. first try and runs in ~0.3 secs
   answer := 0
-  puzzle := make_puzzle(input)
 
-  id, ok := next_id(&puzzle)
+  id, ok := next_id(puzzle)
 
   for ok {
     for range in puzzle.id_ranges {
@@ -24,57 +26,20 @@ part_one :: proc(input: string) {
       break
     }
 
-    id, ok = next_id(&puzzle)
+    id, ok = next_id(puzzle)
   }
 
   fmt.printfln("Day 5 part one answer: %v", answer)
 }
 
-part_two :: proc(input: string) {
+part_two :: proc(puzzle: ^Puzzle_Data) {
+  // Attempt 1: 354966828391732 .. too damn high
+  // Attempt 2: 351974077086541 .. still too damn high
+  // Attempt 3: 351974077086445 .. wow, still high
   answer := 0
-  puzzle := make_puzzle(input)
 
-  final_id_ranges: [dynamic]Ingredient_ID_Range
-  merged_indexes := make([dynamic]bool, len(puzzle.id_ranges))
-
-  for index in 0 ..< len(puzzle.id_ranges) - 1 {
-    (merged_indexes[index] == false) or_continue
-
-    id_range := puzzle.id_ranges[index]
-
-    for next_index in index + 1 ..< len(puzzle.id_ranges) {
-      (merged_indexes[next_index] == false) or_continue
-
-      next_id_range := puzzle.id_ranges[next_index]
-
-      if id_range.start >= next_id_range.start && id_range.start <= next_id_range.end {
-        merged_indexes[index] = true
-        merged_indexes[next_index] = true
-      } else if id_range.end >= next_id_range.start && id_range.end <= next_id_range.end {
-        merged_indexes[index] = true
-        merged_indexes[next_index] = true
-      } else {
-        continue
-      }
-
-      start := min(id_range.start, next_id_range.start)
-      end := max(id_range.end, next_id_range.end)
-
-      append(&final_id_ranges, Ingredient_ID_Range {
-        start = start,
-        end = end,
-      })
-    }
-
-    if merged_indexes[index] == false {
-      append(&final_id_ranges, id_range)
-    }
-  }
-
-  fmt.println(final_id_ranges)
-  fmt.printfln("merged %v", merged_indexes)
-
-  for id_range in final_id_ranges {
+  for id_range in puzzle.id_ranges {
+    fmt.printfln("%15d - %15d", id_range.start, id_range.end)
     answer += id_range.end - id_range.start + 1
   }
 
@@ -130,14 +95,39 @@ make_puzzle :: proc(data: string) -> Puzzle_Data {
       last_num, _ := strconv.parse_int(data[range_ch_index + 1:i])
 
       append(&id_ranges, Ingredient_ID_Range {
-        start = first_num,
-        end = last_num,
+          start = first_num,
+          end = last_num,
       })
-
+ 
       last_newline = i + 1
     } else if ch == '-' {
       range_ch_index = i
     }
+  }
+
+  id_range_sort :: proc(lhs, rhs: Ingredient_ID_Range) -> int {
+    return -1 if lhs.start < rhs.start else 1
+  }
+
+  sort.quick_sort_proc(id_ranges[:], id_range_sort)
+
+  final_id_ranges := make([dynamic]Ingredient_ID_Range)
+
+  current_id := &id_ranges[0]
+
+  for &id_range, index in id_ranges[1:] {
+    if current_id.start >= id_range.start && current_id.start <= id_range.start ||
+      current_id.end >= id_range.end && current_id.end <= id_range.end {
+        current_id.start = min(current_id.start, id_range.start)
+        current_id.end = max(current_id.end, id_range.end)
+      } else {
+        append(&final_id_ranges, current_id^)
+        current_id = &id_range
+      }
+  }
+
+  for r in final_id_ranges {
+    fmt.println(r.start, r.end)
   }
 
   return {
