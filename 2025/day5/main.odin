@@ -119,7 +119,7 @@ make_puzzle :: proc(data: string) -> Puzzle_Data {
   for &id_range in id_ranges[1:] {
     current_id := &final_id_ranges[len(final_id_ranges) - 1]
 
-    if id_range.start <= current_id.end + 1 {
+    if id_range.start <= current_id.end {
       current_id.end = max(current_id.end, id_range.end)
     } else {
       current_id = &id_range
