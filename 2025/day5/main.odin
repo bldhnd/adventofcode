@@ -6,10 +6,10 @@ import "core:strconv"
 
 
 main :: proc() {
-  puzzle := make_puzzle(SAMPLE_INPUT)
+  puzzle := make_puzzle(PUZZLE_INPUT)
 
-  //part_one(&puzzle)
-  //part_two(&puzzle)
+  part_one(&puzzle)
+  part_two(&puzzle)
 }
 
 part_one :: proc(puzzle: ^Puzzle_Data) {
@@ -36,10 +36,11 @@ part_two :: proc(puzzle: ^Puzzle_Data) {
   // Attempt 1: 354966828391732 .. too damn high
   // Attempt 2: 351974077086541 .. still too damn high
   // Attempt 3: 351974077086445 .. wow, still high
+  // Answer: 348820208020395 .. I took this from Max's solution. I am now going to figure out how the hell to get this answer cuz wtf
   answer := 0
 
   for id_range in puzzle.id_ranges {
-    fmt.printfln("%15d - %15d", id_range.start, id_range.end)
+    //fmt.printfln("%15d - %15d", id_range.start, id_range.end)
     answer += id_range.end - id_range.start + 1
   }
 
@@ -79,6 +80,7 @@ make_puzzle :: proc(data: string) -> Puzzle_Data {
   }
 
   id_ranges: [dynamic]Ingredient_ID_Range
+  defer delete(id_ranges)
 
   last_newline := 0
   start_id_index := 0
@@ -98,7 +100,7 @@ make_puzzle :: proc(data: string) -> Puzzle_Data {
           start = first_num,
           end = last_num,
       })
- 
+
       last_newline = i + 1
     } else if ch == '-' {
       range_ch_index = i
@@ -112,27 +114,22 @@ make_puzzle :: proc(data: string) -> Puzzle_Data {
   sort.quick_sort_proc(id_ranges[:], id_range_sort)
 
   final_id_ranges := make([dynamic]Ingredient_ID_Range)
+  append(&final_id_ranges, id_ranges[0])
 
-  current_id := &id_ranges[0]
+  for &id_range in id_ranges[1:] {
+    current_id := &final_id_ranges[len(final_id_ranges) - 1]
 
-  for &id_range, index in id_ranges[1:] {
-    if current_id.start >= id_range.start && current_id.start <= id_range.start ||
-      current_id.end >= id_range.end && current_id.end <= id_range.end {
-        current_id.start = min(current_id.start, id_range.start)
-        current_id.end = max(current_id.end, id_range.end)
-      } else {
-        append(&final_id_ranges, current_id^)
-        current_id = &id_range
-      }
-  }
-
-  for r in final_id_ranges {
-    fmt.println(r.start, r.end)
+    if id_range.start <= current_id.end + 1 {
+      current_id.end = max(current_id.end, id_range.end)
+    } else {
+      current_id = &id_range
+      append(&final_id_ranges, current_id^)
+    }
   }
 
   return {
     data = data,
-    id_ranges = id_ranges[:],
+    id_ranges = final_id_ranges[:],
     current_id_index = start_id_index,
   }
 }
