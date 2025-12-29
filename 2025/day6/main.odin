@@ -2,217 +2,156 @@ package aoc
 
 import "core:fmt"
 import "core:strconv"
+import "core:strings"
+import "core:unicode/utf8"
 
 
 main :: proc() {
-  puzzle := make_puzzle(SAMPLE_INPUT)
+  puzzle := make_puzzle(PUZZLE_INPUT)
 
-  test(&puzzle)
-
-  //part_one(&puzzle)
-  //part_two(&puzzle)
-}
-
-test :: proc(puzzle: ^Puzzle_Data) {
-  symbols := parse_puzzle_into_symbols(puzzle)
-  defer delete(symbols)
-
-  fmt.println(symbols)
+  part_one(&puzzle)
+  part_two(&puzzle)
 }
 
 part_one :: proc(puzzle: ^Puzzle_Data) {
   // Attempt 1: 5212839837770 .. is too low
   // Answer: 5782351442566
   answer := 0
-  numbers: [dynamic]int
-  defer delete(numbers)
+  symbols := parse_puzzle_into_symbols_v3(puzzle)
 
-  solve: for {
-    sym := look(puzzle, vec2_to_index(puzzle.pos, puzzle.row_length))
+  #reverse for sym in symbols {
+    total := 0
 
-    fmt.println(sym, puzzle.pos, vec2_to_index(puzzle.pos, puzzle.row_length))
-
-    switch val in sym.data {
-    case int:
-      append(&numbers, val)
-      puzzle.pos.y += 1
-    case Symbol_Op:
-      if val == .Add {
-        answer += add(numbers[:])
-      } else {
-        answer += mul(numbers[:])
+    if sym.data == .Multiply {
+      total = 1
+      for expr in sym.expressions {
+        total *= expr.data.(int)
       }
-
-      clear(&numbers)
-
-      sym = look(puzzle, vec2_to_index({puzzle.pos.x, 0}, puzzle.row_length))
-
-      fast_forward_to_next_number: for i := sym.index + sym.length; i <= puzzle.row_length; i += 1 {
-        puzzle.pos.x = i
-
-        ch := puzzle.data[i]
-
-        if ch != ASCII_SPACE {
-          break fast_forward_to_next_number
-        }
-      }
-
-      puzzle.pos.y = 0
-
-      if puzzle.pos.x >= puzzle.row_length {
-        break solve
+    } else {
+      for expr in sym.expressions {
+        total += expr.data.(int)
       }
     }
-  } 
+
+    answer += total
+  }
 
   fmt.printfln("Day 6 part one answer: %v", answer)
 }
 
 part_two :: proc(puzzle: ^Puzzle_Data) {
+  // Answer: 10194584711842
   answer := 0
-  numbers: [dynamic]string
-  defer delete(numbers)
+  symbols := parse_puzzle_into_symbols_v3(puzzle)
 
-  solve: for {
-    sym := look(puzzle, vec2_to_index(puzzle.pos, puzzle.row_length))
+ for sym in symbols {
+   total := 0 if sym.data == .Add else 1
 
-    fmt.println(sym, puzzle.pos, vec2_to_index(puzzle.pos, puzzle.row_length))
+   new_num: [dynamic]rune
+   defer delete(new_num)
 
-    switch val in sym.data {
-    case int:
-      append(&numbers, puzzle.data[sym.index:sym.index + sym.length])
-      puzzle.pos.y += 1
-    case Symbol_Op:
-      if val == .Add {
-        fmt.printfln("add these %v", numbers)
-        //answer += add(numbers[:])
-      } else {
-        fmt.printfln("mul these %v", numbers)
-        //answer += mul(numbers[:])
-      }
+   for i := 0; i < sym.length; i += 1 {
+     #reverse for expr in sym.expressions {
+       append(&new_num, rune(expr.raw_data[i]))
+     }
 
-      clear(&numbers)
+     str := utf8.runes_to_string(new_num[:])
 
-      sym = look(puzzle, vec2_to_index({puzzle.pos.x, 0}, puzzle.row_length))
+     num, _ := strconv.parse_int(strings.trim(str, " "))
 
-      fast_forward_to_next_number: for i := sym.index + sym.length; i <= puzzle.row_length; i += 1 {
-        puzzle.pos.x = i
+     if sym.data == .Multiply {
+       total *= num
+     } else {
+       total += num
+     }
 
-        ch := puzzle.data[i]
+     clear(&new_num)
+   }
 
-        if ch != ASCII_SPACE {
-          break fast_forward_to_next_number
-        }
-      }
-
-      puzzle.pos.y = 0
-
-      if puzzle.pos.x >= puzzle.row_length {
-        break solve
-      }
-    }
-  } 
+   answer += total
+ }
 
   fmt.printfln("Day 6 part two answer: %v", answer)
 }
 
-add :: proc(numbers: []int) -> int {
-  result := 0
-
-  for num in numbers do result += num
-
-  return result
-}
-
-mul :: proc(numbers: []int) -> int {
-  result := 1
-
-  for num in numbers do result *= num
-
-  return result
-}
-
-look :: proc(puzzle: ^Puzzle_Data, start: int) -> Symbol {
-  begin := start
-
-  if begin > 0 {
-    if puzzle.data[begin - 1] != ASCII_SPACE && puzzle.data[begin - 1] != '\n' {
-      rewind: for i := begin - 1; i > 0; i -= 1 {
-        ch := puzzle.data[i]
-
-        if ch == ASCII_SPACE || ch == '\n' {
-          begin = i
-          break rewind
-        }
-      }
-    } else if puzzle.data[begin] == ASCII_SPACE {
-      for i := begin; i > 0; i -= 1 {
-        ch := puzzle.data[i]
-
-        if ch == ASCII_PLUS || ch == ASCII_STAR {
-          begin = i
-          break
-        }
-      }
-    }
-  }
-
-  trim_leading_space: for i in begin ..< len(puzzle.data) {
-    ch := puzzle.data[i]
-
-    if ch != ASCII_SPACE {
-      break trim_leading_space
-    }
-
-    begin += 1
-  }
-
-  ch := puzzle.data[begin]
-
-  if ch == ASCII_STAR {
-    return {
-      index  = begin,
-      length = 1,
-      data   = .Multiply,
-    }
-  }
-
-  if ch == ASCII_PLUS {
-    return {
-      index  = begin,
-      length = 1,
-      data   = .Add,
-    }
-  }
-
-  end := begin
-  read_number: for i in begin ..< len(puzzle.data) {
-    ch := puzzle.data[i]
-
-    if ch == '\n' || ch == ASCII_SPACE {
-      break read_number
-    }
-
-    end += 1
-  }
-
-  num, _ := strconv.parse_int(puzzle.data[begin:end])
-
-  return {
-    index  = begin,
-    length = end - begin,
-    data   = num,
-  }
-}
-
-parse_puzzle_into_symbols :: proc(puzzle: ^Puzzle_Data) -> []Symbol {
+parse_puzzle_into_symbols_v3 :: proc(puzzle: ^Puzzle_Data) -> []Symbol {
   symbols: [dynamic]Symbol
 
-  current_pos := 0
+  read_operators: for i := len(puzzle.data) - 1; i > 0; {
+    ch := puzzle.data[i]
 
-  //TODO: break into lines and maybe I can process that better
+    switch ch {
+    case ASCII_SPACE:
+      end := i
+
+      for puzzle.data[i] == ASCII_SPACE {
+        i -= 1
+      }
+
+      sym := Symbol {
+        index = i,
+        length = end - i + 1,
+        raw_data = puzzle.data[i:end + 1],
+      }
+
+      ch = puzzle.data[i]
+
+      if ch == ASCII_STAR {
+        sym.data = .Multiply
+      } else if ch == ASCII_PLUS {
+        sym.data = .Add
+      }
+
+      append(&symbols, sym)
+
+      i -= 1
+
+      if puzzle.data[i] == ASCII_SPACE {
+        i -= 1
+      }
+    case '\n':
+      break read_operators
+    case:
+      i -= 1
+    }
+  }
+
+  for &op_sym in symbols {
+    expressions: [dynamic]Symbol
+
+    for row in 1 ..= puzzle.row_count {
+      // work out the index for the start of the column above the current row
+      index := op_sym.index - puzzle.row_length * row - row
+
+      sym := Symbol {
+        index  = index,
+        length = op_sym.length,
+        raw_data = puzzle.data[index:index + op_sym.length],
+      }
+
+      num, _ := strconv.parse_int(strings.trim(sym.raw_data, " "))
+
+      sym.data = num
+
+      append(&expressions, sym)
+    }
+
+    op_sym.expressions = expressions[:]
+  }
 
   return symbols[:]
+}
+
+total_rows :: proc(input: string) -> int {
+  row_count := 0
+
+  for ch in input {
+    (ch == '\n') or_continue
+
+    row_count += 1
+  }
+
+  return row_count
 }
 
 line_length :: proc(input: string) -> int {
@@ -225,15 +164,11 @@ line_length :: proc(input: string) -> int {
   return 0
 }
 
-vec2_to_index :: proc(vec2: Vec2i, line_length: int) -> int {
-  return vec2.x + vec2.y * line_length + vec2.y
-}
-
 make_puzzle :: proc(input: string) -> Puzzle_Data {
   return {
     data       = input,
     row_length = line_length(input),
-    pos        = {0,0},
+    row_count  = total_rows(input),
   }
 }
 
@@ -243,9 +178,10 @@ Symbol_Op :: enum {
 }
 
 Symbol :: struct {
-  index:    int,
-  length:   int,
-  raw_data: string,
+  index:       int,
+  length:      int,
+  raw_data:    string,
+  expressions: []Symbol,
   data: union {
     int,
     Symbol_Op,
@@ -255,13 +191,9 @@ Symbol :: struct {
 Puzzle_Data :: struct {
   data:       string,
   row_length: int,
-  pos:        Vec2i,
+  row_count:  int,
 }
 
-Vec2i :: [2]int
-
 ASCII_SPACE :: 32
-ASCII_ZERO :: 48
-ASCII_NINE :: 57
 ASCII_STAR :: 42
 ASCII_PLUS :: 43
