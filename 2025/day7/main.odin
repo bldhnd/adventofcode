@@ -6,8 +6,8 @@ import "core:fmt"
 main :: proc() {
   puzzle := make_puzzle(PUZZLE_INPUT)
 
-  part_one(&puzzle)
-  //part_two(&puzzle)
+  //part_one(&puzzle)
+  part_two(&puzzle)
 }
 
 part_one :: proc(puzzle: ^Puzzle_Data) {
@@ -26,27 +26,27 @@ part_one :: proc(puzzle: ^Puzzle_Data) {
     }
   }
 
-  count_beams :: proc(beam: ^Tachyon_Beam) -> int {
-    count := 1
-
-    if beam.left_beam != nil {
-      count += count_beams(beam.left_beam)
-    }
-
-    if beam.right_beam != nil {
-      count += count_beams(beam.right_beam)
-    }
-
-    return count
-  }
-
   fmt.printfln("Day 7 part one answer is %v", answer)
 }
 
 part_two :: proc(puzzle: ^Puzzle_Data) {
-  answer := follow_particle_many_worlds_path(&puzzle.start, puzzle)
+  answer := follow_particle_many_worlds_path(puzzle.start.start, puzzle)
 
   fmt.printfln("Day 7 part two answer is %v", answer)
+}
+
+count_beams :: proc(beam: ^Tachyon_Beam) -> int {
+  count := 1 if beam.left_beam == nil && beam.right_beam == nil else 0
+
+  if beam.left_beam != nil {
+    count += count_beams(beam.left_beam)
+  }
+
+  if beam.right_beam != nil {
+    count += count_beams(beam.right_beam)
+  }
+
+  return count
 }
 
 follow_beam_path :: proc(beam: ^Tachyon_Beam, puzzle: ^Puzzle_Data) -> int {
@@ -134,10 +134,16 @@ beam_intersects_another_beam_at :: proc(at: Vec2i, root: ^Tachyon_Beam, puzzle: 
   return false
 }
 
-follow_particle_many_worlds_path :: proc(beam: ^Tachyon_Beam, puzzle: ^Puzzle_Data) -> int {
+follow_particle_many_worlds_path :: proc(pos: Vec2i, puzzle: ^Puzzle_Data) -> int {
+  // well ive eliminated the need for Tachyon_Beam allocation but still running forever with puzzle data
+  // most likely because of deep nested recursion. I can probably eliminate that as well with a for
+  // loop but cant think of how to acheive that atm
   path_count := 0
 
-  current_pos := beam.start
+  current_pos := pos
+
+  left: Vec2i
+  right: Vec2i
 
   traverse: for {
     index := vec2_to_index(current_pos, puzzle.row_length)
@@ -150,11 +156,9 @@ follow_particle_many_worlds_path :: proc(beam: ^Tachyon_Beam, puzzle: ^Puzzle_Da
     ch := rune(puzzle.data[index])
 
     if ch == '^' {
-      beam.left_beam = new(Tachyon_Beam)
-      beam.left_beam.start = current_pos + {-1, 0}
+      left = current_pos + {-1, 0}
 
-      beam.right_beam = new(Tachyon_Beam)
-      beam.right_beam.start = current_pos + {1, 0}
+      right = current_pos + {1, 0}
 
       break traverse
     }
@@ -162,12 +166,12 @@ follow_particle_many_worlds_path :: proc(beam: ^Tachyon_Beam, puzzle: ^Puzzle_Da
     current_pos += {0, 1}
   }
 
-  if beam.left_beam != nil {
-    path_count += follow_particle_many_worlds_path(beam.left_beam, puzzle)
+  if left != {0, 0} {
+    path_count += follow_particle_many_worlds_path(left, puzzle)
   }
 
-  if beam.right_beam != nil {
-    path_count += follow_particle_many_worlds_path(beam.right_beam, puzzle)
+  if right != {0, 0} {
+    path_count += follow_particle_many_worlds_path(right, puzzle)
   }
 
   return path_count
