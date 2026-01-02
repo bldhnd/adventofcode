@@ -1,6 +1,7 @@
 package aoc
 
 import "core:fmt"
+import q "core:container/queue"
 
 
 main :: proc() {
@@ -14,25 +15,82 @@ part_one :: proc(puzzle: ^Puzzle_Data) {
   // Answer: 1560
   answer := follow_beam_path(&puzzle.start, puzzle)
 
-  print_beam :: proc(beam: ^Tachyon_Beam) {
-    fmt.printfln("%p %v", beam, beam)
-
-    if beam.left_beam != nil {
-      print_beam(beam.left_beam)
-    }
-
-    if beam.right_beam != nil {
-      print_beam(beam.right_beam)
-    }
-  }
-
   fmt.printfln("Day 7 part one answer is %v", answer)
 }
 
 part_two :: proc(puzzle: ^Puzzle_Data) {
-  answer := follow_particle_many_worlds_path(puzzle.start.start, puzzle)
+  /*
+  pos := Vec2i {0, 130}
+
+  print_out: for i := 0; i < 20; i += 1 {
+    index := vec2_to_index(pos, puzzle.row_length)
+
+    if index >= len(puzzle.data) do break print_out
+
+    fmt.print(pos.y)
+
+    for _ in 0 ..< puzzle.row_length {
+      index := vec2_to_index(pos, puzzle.row_length)
+
+      ch := rune(puzzle.data[index])
+
+      if pos.x == 112 && pos.y >= 132 {
+        fmt.print("[")
+      }
+
+      fmt.print(ch)
+
+      if pos.x == 112 && pos.y >= 132 {
+        fmt.print("]")
+      }
+
+      pos.x += 1
+    }
+
+    fmt.println()
+
+    pos.x = 0
+    pos.y += 1
+  }
+  */
+
+  answer := follow_particle_many_worlds_path(puzzle)
 
   fmt.printfln("Day 7 part two answer is %v", answer)
+}
+
+count_unique_splitters :: proc(beam: ^Tachyon_Beam, splitters: ^[dynamic]Vec2i) {
+  found := false
+  for splitter in splitters {
+    (splitter == beam.split_at) or_continue
+
+    found = true
+    break
+  }
+
+  if !found {
+    append(splitters, beam.split_at)
+  }
+
+  if beam.left_beam != nil {
+    count_unique_splitters(beam.left_beam, splitters)
+  }
+
+  if beam.right_beam != nil {
+    count_unique_splitters(beam.right_beam, splitters)
+  }
+}
+
+print_beam :: proc(beam: ^Tachyon_Beam) {
+  fmt.printfln("%p %v", beam, beam)
+
+  if beam.left_beam != nil {
+    print_beam(beam.left_beam)
+  }
+
+  if beam.right_beam != nil {
+    print_beam(beam.right_beam)
+  }
 }
 
 count_beams :: proc(beam: ^Tachyon_Beam) -> int {
@@ -68,14 +126,16 @@ follow_beam_path :: proc(beam: ^Tachyon_Beam, puzzle: ^Puzzle_Data) -> int {
 
       if !beam_intersects_another_beam_at(pos, &puzzle.start, puzzle) {
         beam.left_beam = new(Tachyon_Beam)
-        beam.left_beam.start = pos
+        beam.left_beam.split_at = current_pos
+        beam.left_beam.start    = pos
       }
 
       pos = current_pos + {1, 0}
 
       if !beam_intersects_another_beam_at(pos, &puzzle.start, puzzle) {
         beam.right_beam = new(Tachyon_Beam)
-        beam.right_beam.start = pos
+        beam.right_beam.split_at = current_pos
+        beam.right_beam.start    = pos
       }
 
       splits = 1 if beam.left_beam != nil || beam.right_beam != nil else 0
@@ -134,47 +194,101 @@ beam_intersects_another_beam_at :: proc(at: Vec2i, root: ^Tachyon_Beam, puzzle: 
   return false
 }
 
-follow_particle_many_worlds_path :: proc(pos: Vec2i, puzzle: ^Puzzle_Data) -> int {
-  // well ive eliminated the need for Tachyon_Beam allocation but still running forever with puzzle data
-  // most likely because of deep nested recursion. I can probably eliminate that as well with a for
-  // loop but cant think of how to acheive that atm
+follow_particle_many_worlds_path :: proc(puzzle: ^Puzzle_Data) -> int {
   path_count := 0
 
-  current_pos := pos
+  stack: q.Queue(^Splitter)
 
-  left: Vec2i
-  right: Vec2i
+  q.init(&stack)
+  defer q.destroy(&stack)
 
-  traverse: for {
+  make_splitter :: proc(pos: Vec2i) -> ^Splitter {
+    s := new(Splitter)
+    s.pos = pos
+
+    return s
+  }
+
+  q.push_front(&stack, make_splitter(puzzle.start.split_at))
+
+  current := q.back_ptr(&stack)^
+  current_pos := current.pos
+
+  fmt.println("start", current)
+
+  traverse: for q.len(stack) > 0 {
+    next := q.front_ptr(&stack)^
+
+    if next != current {
+      current = next
+      current_pos = current.pos
+
+      fmt.println("current", current)
+
+      if current.left != nil {
+        fmt.println("  current.left", current.left)
+      }
+ 
+      if current.right != nil {
+        fmt.println("  current.right", current.right)
+      }
+   }
+
+    if current.left != nil && current.left.done && current.right != nil && current.right.done {
+      q.pop_front(&stack)
+
+      free(current.left)
+      free(current.right)
+
+      current.left = nil
+      current.right = nil
+
+      current.done = true
+
+      fmt.println("current done", current)
+
+      continue traverse
+    }
+
     index := vec2_to_index(current_pos, puzzle.row_length)
 
-    if index >= len(puzzle.data) {
-      path_count = 1
-      break traverse
+    if index > len(puzzle.data) {
+      last := q.pop_front(&stack)
+      last.done = true
+
+      fmt.println("popped", last)
+
+      path_count += 1
+
+      continue traverse
     }
 
     ch := rune(puzzle.data[index])
 
     if ch == '^' {
-      left = current_pos + {-1, 0}
+      current.left = make_splitter(current_pos + {-1, 0})
+      current.right = make_splitter(current_pos + {1, 0})
 
-      right = current_pos + {1, 0}
+      fmt.println("  splitting left at", current.left)
+      fmt.println("  splitting right at", current.right)
 
-      break traverse
+      q.push_front(&stack, current.right)
+      q.push_front(&stack, current.left)
+
+      continue traverse
     }
 
     current_pos += {0, 1}
   }
 
-  if left != {0, 0} {
-    path_count += follow_particle_many_worlds_path(left, puzzle)
-  }
-
-  if right != {0, 0} {
-    path_count += follow_particle_many_worlds_path(right, puzzle)
-  }
-
   return path_count
+}
+
+Splitter :: struct {
+  pos:   Vec2i,
+  done:  bool,
+  left:  ^Splitter,
+  right: ^Splitter,
 }
 
 make_puzzle :: proc(input: string) -> Puzzle_Data {
@@ -184,7 +298,8 @@ make_puzzle :: proc(input: string) -> Puzzle_Data {
     data       = input,
     row_length = get_row_length(input),
     start      = {
-      start = pos,
+      split_at = pos,
+      start    = pos,
     }
   }
 }
@@ -231,6 +346,7 @@ Puzzle_Data :: struct {
 }
 
 Tachyon_Beam :: struct {
+  split_at:   Vec2i,
   start:      Vec2i,
   left_beam:  ^Tachyon_Beam,
   right_beam: ^Tachyon_Beam,
