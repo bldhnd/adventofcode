@@ -19,7 +19,6 @@ part_one :: proc(puzzle: ^Puzzle_Data) {
 }
 
 part_two :: proc(puzzle: ^Puzzle_Data) {
-  /*
   pos := Vec2i {0, 130}
 
   print_out: for i := 0; i < 20; i += 1 {
@@ -34,13 +33,13 @@ part_two :: proc(puzzle: ^Puzzle_Data) {
 
       ch := rune(puzzle.data[index])
 
-      if pos.x == 112 && pos.y >= 132 {
+      if pos.x == 13 && pos.y >= 132 {
         fmt.print("[")
       }
 
       fmt.print(ch)
 
-      if pos.x == 112 && pos.y >= 132 {
+      if pos.x == 13 && pos.y >= 132 {
         fmt.print("]")
       }
 
@@ -52,11 +51,10 @@ part_two :: proc(puzzle: ^Puzzle_Data) {
     pos.x = 0
     pos.y += 1
   }
-  */
 
-  answer := follow_particle_many_worlds_path(puzzle)
+  //answer := follow_particle_many_worlds_path(puzzle)
 
-  fmt.printfln("Day 7 part two answer is %v", answer)
+  //fmt.printfln("Day 7 part two answer is %v", answer)
 }
 
 count_unique_splitters :: proc(beam: ^Tachyon_Beam, splitters: ^[dynamic]Vec2i) {
@@ -214,23 +212,33 @@ follow_particle_many_worlds_path :: proc(puzzle: ^Puzzle_Data) -> int {
   current := q.back_ptr(&stack)^
   current_pos := current.pos
 
-  fmt.println("start", current)
+  //fmt.println("start", current)
+
+  dump_stack :: proc(stack: ^q.Queue(^Splitter)) {
+    fmt.printf("STACK::")
+    for i := 0; i < q.len(stack^); i += 1 {
+      item := q.get(stack, i)
+      fmt.printfln("  %v", item)
+    }
+    fmt.println()
+  }
 
   traverse: for q.len(stack) > 0 {
+
     next := q.front_ptr(&stack)^
 
     if next != current {
       current = next
       current_pos = current.pos
 
-      fmt.println("current", current)
+      //fmt.println("current", current)
 
       if current.left != nil {
-        fmt.println("  current.left", current.left)
+        //fmt.println("  current.left", current.left)
       }
  
       if current.right != nil {
-        fmt.println("  current.right", current.right)
+        //fmt.println("  current.right", current.right)
       }
    }
 
@@ -245,8 +253,9 @@ follow_particle_many_worlds_path :: proc(puzzle: ^Puzzle_Data) -> int {
 
       current.done = true
 
-      fmt.println("current done", current)
+      //fmt.println("current done", current)
 
+      dump_stack(&stack)
       continue traverse
     }
 
@@ -256,10 +265,11 @@ follow_particle_many_worlds_path :: proc(puzzle: ^Puzzle_Data) -> int {
       last := q.pop_front(&stack)
       last.done = true
 
-      fmt.println("popped", last)
+      //fmt.println("popped", last)
 
       path_count += 1
 
+      dump_stack(&stack)
       continue traverse
     }
 
@@ -269,12 +279,13 @@ follow_particle_many_worlds_path :: proc(puzzle: ^Puzzle_Data) -> int {
       current.left = make_splitter(current_pos + {-1, 0})
       current.right = make_splitter(current_pos + {1, 0})
 
-      fmt.println("  splitting left at", current.left)
-      fmt.println("  splitting right at", current.right)
+      //fmt.println("  splitting left at", current.left)
+      //fmt.println("  splitting right at", current.right)
 
       q.push_front(&stack, current.right)
       q.push_front(&stack, current.left)
 
+      dump_stack(&stack)
       continue traverse
     }
 
