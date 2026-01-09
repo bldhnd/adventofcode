@@ -1,6 +1,8 @@
 package aoc
 
 import "core:fmt"
+import "core:c"
+import rl "vendor:raylib"
 import q "core:container/queue"
 
 
@@ -8,7 +10,8 @@ main :: proc() {
   puzzle := make_puzzle(PUZZLE_INPUT)
 
   //part_one(&puzzle)
-  part_two(&puzzle)
+  //part_two(&puzzle)
+  visualize_part_two(&puzzle)
 }
 
 part_one :: proc(puzzle: ^Puzzle_Data) {
@@ -19,42 +22,106 @@ part_one :: proc(puzzle: ^Puzzle_Data) {
 }
 
 part_two :: proc(puzzle: ^Puzzle_Data) {
-  pos := Vec2i {0, 130}
+  answer := follow_particle_many_worlds_path(puzzle)
 
-  print_out: for i := 0; i < 20; i += 1 {
-    index := vec2_to_index(pos, puzzle.row_length)
+  fmt.printfln("Day 7 part two answer is %v", answer)
+}
 
-    if index >= len(puzzle.data) do break print_out
+visualize_part_two :: proc(puzzle: ^Puzzle_Data) {
+  rl.SetConfigFlags({.WINDOW_RESIZABLE})
+  rl.InitWindow(800, 800, "Visualize Part Two")
+  defer rl.CloseWindow()
 
-    fmt.print(pos.y)
+  the_shit: [dynamic]Puzzle_Piece
 
-    for _ in 0 ..< puzzle.row_length {
-      index := vec2_to_index(pos, puzzle.row_length)
+  FONT_SIZE :: 12
+  SIZE :: rl.Vector2 {20, 20}
+  pos: rl.Vector2
 
-      ch := rune(puzzle.data[index])
+  dot_image := rl.GenImageColor(c.int(SIZE[0]), c.int(SIZE[1]), rl.BLANK)
+  start_image := rl.GenImageColor(c.int(SIZE[0]), c.int(SIZE[1]), rl.BLANK)
+  splitter_image := rl.GenImageColor(c.int(SIZE[0]), c.int(SIZE[1]), rl.BLANK)
 
-      if pos.x == 13 && pos.y >= 132 {
-        fmt.print("[")
-      }
+  rl.ImageDrawText(&dot_image, ".", c.int(SIZE[0] / 2), 0, FONT_SIZE, rl.BLACK)
+  rl.ImageDrawText(&start_image, "S", c.int(SIZE[0] / 2), 0, FONT_SIZE, rl.BLACK)
+  rl.ImageDrawText(&splitter_image, "^", c.int(SIZE[0] / 2), 6, FONT_SIZE, rl.BLACK)
 
-      fmt.print(ch)
+  dot_texture := rl.LoadTextureFromImage(dot_image)
+  start_texture := rl.LoadTextureFromImage(start_image)
+  splitter_texture := rl.LoadTextureFromImage(splitter_image)
 
-      if pos.x == 13 && pos.y >= 132 {
-        fmt.print("]")
-      }
+  rl.UnloadImage(dot_image)
+  rl.UnloadImage(start_image)
+  rl.UnloadImage(splitter_image)
 
-      pos.x += 1
+  for ch in puzzle.data {
+    if ch == '\n' {
+      pos.x = 0
+      pos.y += 1
+      continue
     }
 
-    fmt.println()
+    piece := Puzzle_Piece {
+      pos = pos,
+    }
 
-    pos.x = 0
-    pos.y += 1
+    switch rune(ch) {
+    case '.':
+      piece.texture = dot_texture
+    case 'S':
+      piece.texture = start_texture
+    case '^':
+      piece.texture = splitter_texture
+    }
+
+    append(&the_shit, piece);
+
+    pos.x += 1
   }
 
-  //answer := follow_particle_many_worlds_path(puzzle)
+  camera := rl.Camera2D {
+    zoom = 5,
+    offset = {400, 400},
+  }
 
-  //fmt.printfln("Day 7 part two answer is %v", answer)
+  font := rl.GetFontDefault()
+  SPACING :: 1
+
+  for !rl.WindowShouldClose() {
+
+    if rl.IsMouseButtonDown(.LEFT) {
+      camera.target += -rl.GetMouseDelta()
+    }
+
+    wheel_move := rl.GetMouseWheelMove()
+
+    camera.zoom = clamp(camera.zoom + wheel_move, 1, 10)
+
+    rl.BeginDrawing()
+    rl.ClearBackground(rl.RAYWHITE)
+    rl.BeginMode2D(camera)
+
+    for piece in the_shit {
+
+      pos := rl.Vector2 {
+        piece.pos.x * SIZE[0] + SIZE[0] / 2,
+        piece.pos.y * SIZE[1],
+      }
+
+      rl.DrawTexturePro(piece.texture, {0, 0, SIZE[0], SIZE[1]}, {pos.x, pos.y, SIZE[0], SIZE[1]}, {}, 0, rl.WHITE)
+
+    }
+
+    // TODO: draw lines between nodes
+ 
+    rl.EndMode2D()
+    rl.EndDrawing()
+  }
+}
+
+Puzzle_Piece :: struct {
+  pos:  rl.Vector2,
+  texture: rl.Texture,
 }
 
 count_unique_splitters :: proc(beam: ^Tachyon_Beam, splitters: ^[dynamic]Vec2i) {
