@@ -1,17 +1,14 @@
 package aoc
 
 import "core:fmt"
-import "core:c"
-import rl "vendor:raylib"
-import q "core:container/queue"
+import "core:math"
 
 
 main :: proc() {
   puzzle := make_puzzle(PUZZLE_INPUT)
 
-  //part_one(&puzzle)
-  //part_two(&puzzle)
-  visualize_part_two(&puzzle)
+  part_one(&puzzle)
+  part_two(&puzzle)
 }
 
 part_one :: proc(puzzle: ^Puzzle_Data) {
@@ -22,106 +19,54 @@ part_one :: proc(puzzle: ^Puzzle_Data) {
 }
 
 part_two :: proc(puzzle: ^Puzzle_Data) {
-  answer := follow_particle_many_worlds_path(puzzle)
+  // Answer: 25592971184998. I couldn't figure this out on my own. learned about Pascal's triangle and how to solve it.
+  row_length := puzzle.row_length
 
-  fmt.printfln("Day 7 part two answer is %v", answer)
-}
+  counter := make([dynamic]int, cap=row_length, len=row_length)
+  defer delete(counter)
 
-visualize_part_two :: proc(puzzle: ^Puzzle_Data) {
-  rl.SetConfigFlags({.WINDOW_RESIZABLE})
-  rl.InitWindow(800, 800, "Visualize Part Two")
-  defer rl.CloseWindow()
+  current_pos := puzzle.start.start
+  counter[current_pos.x] = 1
 
-  the_shit: [dynamic]Puzzle_Piece
+  due_it: for {
+    current_pos += {0, 1}
 
-  FONT_SIZE :: 12
-  SIZE :: rl.Vector2 {20, 20}
-  pos: rl.Vector2
+    index := vec2_to_index(current_pos, len(counter))
 
-  dot_image := rl.GenImageColor(c.int(SIZE[0]), c.int(SIZE[1]), rl.BLANK)
-  start_image := rl.GenImageColor(c.int(SIZE[0]), c.int(SIZE[1]), rl.BLANK)
-  splitter_image := rl.GenImageColor(c.int(SIZE[0]), c.int(SIZE[1]), rl.BLANK)
-
-  rl.ImageDrawText(&dot_image, ".", c.int(SIZE[0] / 2), 0, FONT_SIZE, rl.BLACK)
-  rl.ImageDrawText(&start_image, "S", c.int(SIZE[0] / 2), 0, FONT_SIZE, rl.BLACK)
-  rl.ImageDrawText(&splitter_image, "^", c.int(SIZE[0] / 2), 6, FONT_SIZE, rl.BLACK)
-
-  dot_texture := rl.LoadTextureFromImage(dot_image)
-  start_texture := rl.LoadTextureFromImage(start_image)
-  splitter_texture := rl.LoadTextureFromImage(splitter_image)
-
-  rl.UnloadImage(dot_image)
-  rl.UnloadImage(start_image)
-  rl.UnloadImage(splitter_image)
-
-  for ch in puzzle.data {
-    if ch == '\n' {
-      pos.x = 0
-      pos.y += 1
-      continue
+    if index >= len(puzzle.data) {
+      break due_it
     }
 
-    piece := Puzzle_Piece {
-      pos = pos,
-    }
+    ch := rune(puzzle.data[index])
 
-    switch rune(ch) {
-    case '.':
-      piece.texture = dot_texture
-    case 'S':
-      piece.texture = start_texture
-    case '^':
-      piece.texture = splitter_texture
-    }
-
-    append(&the_shit, piece);
-
-    pos.x += 1
-  }
-
-  camera := rl.Camera2D {
-    zoom = 5,
-    offset = {400, 400},
-  }
-
-  font := rl.GetFontDefault()
-  SPACING :: 1
-
-  for !rl.WindowShouldClose() {
-
-    if rl.IsMouseButtonDown(.LEFT) {
-      camera.target += -rl.GetMouseDelta()
-    }
-
-    wheel_move := rl.GetMouseWheelMove()
-
-    camera.zoom = clamp(camera.zoom + wheel_move, 1, 10)
-
-    rl.BeginDrawing()
-    rl.ClearBackground(rl.RAYWHITE)
-    rl.BeginMode2D(camera)
-
-    for piece in the_shit {
-
-      pos := rl.Vector2 {
-        piece.pos.x * SIZE[0] + SIZE[0] / 2,
-        piece.pos.y * SIZE[1],
+    if ch == '^' {
+      pos := Vec2i {
+        0,
+        current_pos.y,
       }
 
-      rl.DrawTexturePro(piece.texture, {0, 0, SIZE[0], SIZE[1]}, {pos.x, pos.y, SIZE[0], SIZE[1]}, {}, 0, rl.WHITE)
+      for i := 0; i < len(counter); i += 1 {
+        pos.x = i
 
+        index = vec2_to_index(pos, len(counter))
+
+        ch := rune(puzzle.data[index])
+
+        if ch == '^' {
+          count := counter[i]
+          counter[i] = 0
+          counter[i - 1] += count
+          counter[i + 1] += count
+        }
+      }
+
+      current_pos += {-1, 0}
     }
-
-    // TODO: draw lines between nodes
- 
-    rl.EndMode2D()
-    rl.EndDrawing()
   }
-}
 
-Puzzle_Piece :: struct {
-  pos:  rl.Vector2,
-  texture: rl.Texture,
+  answer := math.sum(counter[:])
+
+  fmt.printfln("day 7 part two answer is %v", answer)
 }
 
 count_unique_splitters :: proc(beam: ^Tachyon_Beam, splitters: ^[dynamic]Vec2i) {
@@ -257,116 +202,6 @@ beam_intersects_another_beam_at :: proc(at: Vec2i, root: ^Tachyon_Beam, puzzle: 
   }
 
   return false
-}
-
-follow_particle_many_worlds_path :: proc(puzzle: ^Puzzle_Data) -> int {
-  path_count := 0
-
-  stack: q.Queue(^Splitter)
-
-  q.init(&stack)
-  defer q.destroy(&stack)
-
-  make_splitter :: proc(pos: Vec2i) -> ^Splitter {
-    s := new(Splitter)
-    s.pos = pos
-
-    return s
-  }
-
-  q.push_front(&stack, make_splitter(puzzle.start.split_at))
-
-  current := q.back_ptr(&stack)^
-  current_pos := current.pos
-
-  //fmt.println("start", current)
-
-  dump_stack :: proc(stack: ^q.Queue(^Splitter)) {
-    fmt.printf("STACK::")
-    for i := 0; i < q.len(stack^); i += 1 {
-      item := q.get(stack, i)
-      fmt.printfln("  %v", item)
-    }
-    fmt.println()
-  }
-
-  traverse: for q.len(stack) > 0 {
-
-    next := q.front_ptr(&stack)^
-
-    if next != current {
-      current = next
-      current_pos = current.pos
-
-      //fmt.println("current", current)
-
-      if current.left != nil {
-        //fmt.println("  current.left", current.left)
-      }
- 
-      if current.right != nil {
-        //fmt.println("  current.right", current.right)
-      }
-   }
-
-    if current.left != nil && current.left.done && current.right != nil && current.right.done {
-      q.pop_front(&stack)
-
-      free(current.left)
-      free(current.right)
-
-      current.left = nil
-      current.right = nil
-
-      current.done = true
-
-      //fmt.println("current done", current)
-
-      dump_stack(&stack)
-      continue traverse
-    }
-
-    index := vec2_to_index(current_pos, puzzle.row_length)
-
-    if index > len(puzzle.data) {
-      last := q.pop_front(&stack)
-      last.done = true
-
-      //fmt.println("popped", last)
-
-      path_count += 1
-
-      dump_stack(&stack)
-      continue traverse
-    }
-
-    ch := rune(puzzle.data[index])
-
-    if ch == '^' {
-      current.left = make_splitter(current_pos + {-1, 0})
-      current.right = make_splitter(current_pos + {1, 0})
-
-      //fmt.println("  splitting left at", current.left)
-      //fmt.println("  splitting right at", current.right)
-
-      q.push_front(&stack, current.right)
-      q.push_front(&stack, current.left)
-
-      dump_stack(&stack)
-      continue traverse
-    }
-
-    current_pos += {0, 1}
-  }
-
-  return path_count
-}
-
-Splitter :: struct {
-  pos:   Vec2i,
-  done:  bool,
-  left:  ^Splitter,
-  right: ^Splitter,
 }
 
 make_puzzle :: proc(input: string) -> Puzzle_Data {
